@@ -36,7 +36,7 @@ int stopdate  = timestamp('31 Dec 2025 23:45:00 GMT+10')
 
 StartDate  = input.time  (startdate, 'Start Date')
 StopDate   = input.time  (stopdate,  'Stop Date')
-Indicator  = input.string('All',     'Indicator',   ['RSI','ROC','CCI','Volume','All'])
+Indicator  = input.string('All',     'Indicator',   ['RSI','ROC','CCI','Volume','VWAP','All'])
 ShortWinow = input.int   (14,        'Short Period [1..n]', 1)
 LongWindow = input.int   (28,        'Long Period [2..n]',  2)
 BaseK      = input.int   (252,       'Base No. of Neighbours (K) [5..n]', 5)
@@ -87,6 +87,7 @@ float rs = ta.rsi(close,   LongWindow),        float rf = ta.rsi(close,   ShortW
 float cs = ta.cci(close,   LongWindow),        float cf = ta.cci(close,   ShortWinow)
 float os = ta.roc(close,   LongWindow),        float of = ta.roc(close,   ShortWinow)
 float vs = minimax(volume, LongWindow, 0, 99), float vf = minimax(volume, ShortWinow, 0, 99)
+float ws = ta.vwap(close,   LongWindow),       float wf = ta.rsi(close,   ShortWinow)
 
 // TOADD or TOTRYOUT:
 //    ta.cmo(close, LongWindow), ta.cmo(close, ShortWinow)
@@ -97,15 +98,17 @@ float f1 = switch Indicator
     'RSI'    => rs 
     'CCI'    => cs 
     'ROC'    => os 
+    'VWAP'   => ws
     'Volume' => vs 
-    => math.avg(rs, cs, os, vs)
+    => math.avg(rs, cs, os, ws, vs)
 
 float f2 = switch Indicator
     'RSI'    => rf 
     'CCI'    => cf
     'ROC'    => of
+    'VWAP'   => wf
     'Volume' => vf 
-    => math.avg(rf, cf, of, vf)
+    => math.avg(rf, cf, of, wf, vf)
 
 // Classification data, what happens on the next bar
 int class_label = int(math.sign(close[1] - close[0])) // eq. close[1]<close[0] ? SELL: close[1]>close[0] ? BUY : CLEAR
@@ -153,7 +156,7 @@ for i=0 to size-1
 // Get the overall prediction of k nearest neighbours
 prediction := array.sum(predictions)   
 
-bool filter = Filter ? ta.atr(10) > ta.atr(40) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
+bool filter = Filter ? ta.atr(3) > ta.atr(40) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
 
 // Now that we got a prediction for the next market move, we need to make use of this prediction and 
 // trade it. The returns then will show if everything works as predicted.
