@@ -38,11 +38,17 @@ StartDate  = input.time  (startdate, 'Start Date')
 StopDate   = input.time  (stopdate,  'Stop Date')
 //Indicator  = input.string('All',     'Indicator',   ['RSI','ROC','CCI','Volume','VWAP','All'])
 Indicator  = input.string('All',     'Indicator',   ['RSI','ROC','Volume','MFI','All'])
-ShortWinow = input.int   (14,        'Short Period [1..n]', 1)
-LongWindow = input.int   (28,        'Long Period [2..n]',  2)
-BaseK      = input.int   (252,       'Base No. of Neighbours (K) [5..n]', 5)
+ShortWindowRSI = input.int   (5,        'Short Period RSI [1..n]', 1)
+LongWindowRSI = input.int   (10,        'Long Period RSI [1..n]', 1)
+ShortWindowMFI = input.int   (4,        'Short Period MFI [1..n]', 1)
+LongWindowMFI = input.int   (8,        'Long Period MFI [1..n]', 1)
+ShortWindowROC = input.int   (20,        'Short Period ROC [1..n]', 1)
+LongWindowROC = input.int   (40,        'Long Period ROC [1..n]', 1)
+ShortWindowVOL = input.int   (20,        'Short Period VOL [1..n]', 1)
+LongWindowVOL = input.int   (40,        'Long Period VOL [1..n]', 1)
+BaseK      = input.int   (40,       'Base No. of Neighbours (K) [5..n]', 5)
 Filter     = input.bool  (false,     'Volatility Filter')
-Bars       = input.int   (300,       'Bar Threshold [2..5000]', 2, 5000)
+Bars       = input.int   (400,       'Bar Threshold [2..5000]', 2, 5000)
 
 //-- Constants
 
@@ -84,11 +90,11 @@ inside_window(float start, float stop) =>
 bool window = inside_window(StartDate, StopDate)
 
 // 3 pairs of predictor indicators, long and short each
-float rs = ta.rsi(close,   LongWindow),        float rf = ta.rsi(close,   ShortWinow)
+float rs = ta.rsi(close,   LongWindowRSI),        float rf = ta.rsi(close,   ShortWindowRSI)
 //float cs = ta.cci(close,   LongWindow),        float cf = ta.cci(close,   ShortWinow)
-float os = ta.roc(close,   LongWindow),        float of = ta.roc(close,   ShortWinow)
-float vs = minimax(volume, LongWindow, 0, 99), float vf = minimax(volume, ShortWinow, 0, 99)
-float ms = ta.mfi(close,   LongWindow),       float mf = ta.mfi(close,   ShortWinow)
+float os = ta.roc(close,   LongWindowROC),        float of = ta.roc(close,   ShortWindowROC)
+float vs = minimax(volume, LongWindowVOL, 0, 99), float vf = minimax(volume, ShortWindowVOL, 0, 99)
+float ms = ta.mfi(close,   LongWindowMFI),       float mf = ta.mfi(close,   ShortWindowMFI)
 
 // TOADD or TOTRYOUT:
 //    ta.cmo(close, LongWindow), ta.cmo(close, ShortWinow)
@@ -157,7 +163,7 @@ for i=0 to size-1
 // Get the overall prediction of k nearest neighbours
 prediction := array.sum(predictions)   
 
-bool filter = Filter ? (minimax(volume, 50, 0, 99) > minimax(volume, 1000, 0, 99)) and (ta.atr(4) < ta.atr(20)) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
+bool filter = Filter ? (minimax(volume, 1, 0, 99) < minimax(volume, 100, 0, 99)) and (ta.atr(1) < ta.atr(5)) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
 
 // Now that we got a prediction for the next market move, we need to make use of this prediction and 
 // trade it. The returns then will show if everything works as predicted.
@@ -184,8 +190,8 @@ bool startShortTrade = changed and signal==SELL
 // bool endShortTrade   = changed and signal==BUY  
 bool clear_condition = changed and signal==CLEAR //or (changed and signal==SELL) or (changed and signal==BUY)
 
-float maxpos = ta.highest(high, 10)
-float minpos = ta.lowest (low,  10)
+float maxpos = ta.highest(high, 1)
+float minpos = ta.lowest (low,  1)
 
 //-- Visuals
 
