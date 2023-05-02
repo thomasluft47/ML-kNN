@@ -24,7 +24,10 @@ mfi_period = input(14, "MFI Period", type=input.integer, minval=1)
 
 // Helper functions
 euclidean_distance(p1, p2) =>
-    sqrt(sum(series=pow(p1[n] - p2[n], 2) for n = 0 to size(p1) - 1))
+    _sum = 0.0
+    for _n = 0 to size(p1) - 1
+        _sum := _sum + pow(p1[_n] - p2[_n], 2)
+    sqrt(_sum)
 
 rank_elements(arr, idx) =>
     rank = 1
@@ -45,7 +48,10 @@ k_nearest_neighbors(k, distances) =>
     ranks
 
 knn_regression(k, neighbors, targets) =>
-    sum(targets[int(neighbors[n])] for n = 0 to k - 1) / k
+    _sum = 0.0
+    for _n = 0 to k - 1
+        _sum := _sum + targets[int(neighbors[_n])]
+    _sum / k
 
 // Technical Analysis Indicators
 rsi = ta.rsi(close, rsi_period)
