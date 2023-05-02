@@ -2,7 +2,7 @@
 // © capissimo
 
 //@version=5
-indicator('Machine Learning: kNN-based Strategy', 'ML-kNN', true, max_labels_count=300, format=format.price, precision=2, timeframe="", timeframe_gaps=true)
+indicator('Machine Learning: kNN-based Strategy', 'ML-kNN', true, max_labels_count=500, format=format.price, precision=2, timeframe="", timeframe_gaps=true)
 
 // kNN-based Strategy (FX and Crypto)
 // Description: 
@@ -40,6 +40,8 @@ StopDate   = input.time  (stopdate,  'Stop Date')
 Indicator  = input.string('All',     'Indicator',   ['RSI','ROC','Volume','MFI','All'])
 ShortWindowRSI = input.int   (5,        'Short Period RSI [1..n]', 1)
 LongWindowRSI = input.int   (10,        'Long Period RSI [1..n]', 1)
+ShortWindowCS = input.int   (5,        'Short Period RSI [1..n]', 1)
+LongWindowCS = input.int   (10,        'Long Period RSI [1..n]', 1)
 ShortWindowMFI = input.int   (4,        'Short Period MFI [1..n]', 1)
 LongWindowMFI = input.int   (8,        'Long Period MFI [1..n]', 1)
 ShortWindowROC = input.int   (20,        'Short Period ROC [1..n]', 1)
@@ -91,9 +93,9 @@ bool window = inside_window(StartDate, StopDate)
 
 // 3 pairs of predictor indicators, long and short each
 float rs = ta.rsi(close,   LongWindowRSI),        float rf = ta.rsi(close,   ShortWindowRSI)
-//float cs = ta.cci(close,   LongWindow),        float cf = ta.cci(close,   ShortWinow)
+float cs = ta.cci(close,   LongWindowCS),        float cf = ta.cci(close,   ShortWindowCS)
 float os = ta.roc(close,   LongWindowROC),        float of = ta.roc(close,   ShortWindowROC)
-float vs = minimax(volume, LongWindowVOL, 0, 99), float vf = minimax(volume, ShortWindowVOL, 0, 99)
+float vs = minimax(volume, LongWindowVOL, 0, 100), float vf = minimax(volume, ShortWindowVOL, 0, 100)
 float ms = ta.mfi(close,   LongWindowMFI),       float mf = ta.mfi(close,   ShortWindowMFI)
 
 // TOADD or TOTRYOUT:
@@ -103,19 +105,19 @@ float ms = ta.mfi(close,   LongWindowMFI),       float mf = ta.mfi(close,   Shor
 
 float f1 = switch Indicator
     'RSI'    => rs 
-//    'CCI'    => cs 
-    'ROC'    => os 
+    'CCI'    => cs 
+    'ROC'    => os
     'mfi'   => ms
     'Volume' => vs 
-    => math.avg(rs, os, ms, vs)
+    => math.avg(rs, cs, os, ms, vs)
 
 float f2 = switch Indicator
     'RSI'    => rf 
-//    'CCI'    => cf
+    'CCI'    => cf
     'ROC'    => of
     'MFI'   => mf
     'Volume' => vf 
-    => math.avg(rf, of, mf, vf)
+    => math.avg(rf, cf, of, mf, vf)
 
 // Classification data, what happens on the next bar
 int class_label = int(math.sign(close[1] - close[0])) // eq. close[1]<close[0] ? SELL: close[1]>close[0] ? BUY : CLEAR
@@ -163,7 +165,7 @@ for i=0 to size-1
 // Get the overall prediction of k nearest neighbours
 prediction := array.sum(predictions)   
 
-bool filter = Filter ? (minimax(volume, 1, 0, 99) < minimax(volume, 100, 0, 99)) and (ta.atr(1) < ta.atr(5)) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
+bool filter = Filter ? (minimax(volume, 30, 0, 100) < minimax(volume, 100, 0, 100)) : true // filter out by volatility or ex. ta.atr(1) > ta.atr(10)...
 
 // Now that we got a prediction for the next market move, we need to make use of this prediction and 
 // trade it. The returns then will show if everything works as predicted.
@@ -186,8 +188,8 @@ signal := long ? BUY : short ? SELL : clear ? CLEAR : nz(signal[1])
 int  changed         = ta.change(signal)
 bool startLongTrade  = changed and signal==BUY 
 bool startShortTrade = changed and signal==SELL 
-// bool endLongTrade    = changed and signal==SELL
-// bool endShortTrade   = changed and signal==BUY  
+bool endLongTrade    = changed and signal==SELL
+bool endShortTrade   = changed and signal==BUY  
 bool clear_condition = changed and signal==CLEAR //or (changed and signal==SELL) or (changed and signal==BUY)
 
 float maxpos = ta.highest(high, 1)
