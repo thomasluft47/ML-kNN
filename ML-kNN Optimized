@@ -8,8 +8,8 @@ strategy("kNN ML Optimized Strategy", shorttitle="kNN ML Strat", overlay=true, p
 k = input(5, "k-Nearest Neighbors")
 d = input(100, "Lookback Window")
 f = input(1, "Forecast Distance")
-sl_pips = input(20, title="Stop Loss in Pips", type=input.integer, minval=1)
-tp_pips = input(20, title="Take Profit in Pips", type=input.integer, minval=1)
+sl_pips = input.int(20, title="Stop Loss in Pips", minval=1)
+tp_pips = input.int(20, title="Take Profit in Pips", minval=1)
 
 use_rsi = input(true, "Use RSI")
 use_roc = input(true, "Use ROC")
@@ -17,30 +17,30 @@ use_cci = input(true, "Use CCI")
 use_mfi = input(true, "Use MFI")
 use_volume = input(true, "Use Volume")
 
-rsi_period = input(14, "RSI Period", type=input.integer, minval=1)
-roc_period = input(14, "ROC Period", type=input.integer, minval=1)
-cci_period = input(14, "CCI Period", type=input.integer, minval=1)
-mfi_period = input(14, "MFI Period", type=input.integer, minval=1)
+rsi_period = input.int(14, "RSI Period", minval=1)
+roc_period = input.int(14, "ROC Period", minval=1)
+cci_period = input.int(14, "CCI Period", minval=1)
+mfi_period = input.int(14, "MFI Period", minval=1)
 
 // Helper functions
 euclidean_distance(p1, p2) =>
     _sum = 0.0
-    for _n = 0 to size(p1) - 1
+    for _n = 0 to array.size(p1) - 1
         _sum := _sum + pow(p1[_n] - p2[_n], 2)
     sqrt(_sum)
 
 rank_elements(arr, idx) =>
     rank = 1
-    for i = 0 to size(arr) - 1
+    for i = 0 to array.size(arr) - 1
         if arr[i] < arr[idx]
             rank := rank + 1
     rank
 
 k_nearest_neighbors(k, distances) =>
-    ranks = array.new_float(k, float.NaN)
+    ranks = array.new_float(k, na)
     for i = 0 to k - 1
         min_idx = -1
-        for j = 0 to size(distances) - 1
+        for j = 0 to array.size(distances) - 1
             if rank_elements(distances, j) == i + 1
                 min_idx := j
                 break
@@ -71,7 +71,8 @@ for i = 0 to d - f - 1
 
 indicator_values = array.new_float(d - f)
 for i = 0 to d - f - 1
-    indicator_values[i] := use_rsi * rsi[i + f] + use_roc * roc[i + f] + use_cci * cci[i + f] + use_mfi * mfi[i + f] + use_volume * vol[i + f]
+    _value = use_rsi * rsi[i + f] + use_roc * roc[i + f] + use_cci * cci[i + f] + use_mfi * mfi[i + f] + use_volume * vol[i + f]
+    array.set(indicator_values, i, _value)
 
 distances = array.new_float(d)
 for i = 0 to d - 1
